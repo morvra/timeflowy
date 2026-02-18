@@ -373,6 +373,10 @@ html, body {
   text-decoration: line-through;
   color: var(--text-3);
 }
+.task-item.completed .task-name a {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
 .task-item.completed .task-actions { display: none; }
 
 /* ========== SECTION DIVIDER ========== */
@@ -814,6 +818,13 @@ function extractStartTime(name) {
   return m ? m[1] : null
 }
 
+// 完了済みの時刻記録を取得 "HH:MM-HH:MM Xm" 形式
+function extractTimeRecord(name) {
+  const m = name.replace(/<[^>]+>/g, '').match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})\s+(\d+)m/)
+  if (!m) return null
+  return { start: m[1], end: m[2], elapsed: m[3] }
+}
+
 // Strip routine/time data for display in stats (keep HTML for rendering)
 function stripMetaText(name) {
   return name.replace(/<[^>]+>/g,'')
@@ -953,7 +964,8 @@ function renderTask(node) {
   const wrap = mkEl('div','task-item')
   wrap.dataset.id = node.id
 
-  const startTime = extractStartTime(node.name)
+  const timeRecord = extractTimeRecord(node.name)
+  const startTime = timeRecord ? null : extractStartTime(node.name)
   const estimate = extractEstimate(node.name)
   const hasChildren = node.children && node.children.length > 0
   if (startTime) wrap.classList.add('started')
@@ -1105,11 +1117,11 @@ function setupSwipe(el, node) {
     if (!swiping) return
 
     if (currentX < -THRESHOLD) {
-      // Swipe left → complete
-      await handleComplete(node)
+      // Swipe left → complete (only if not already completed)
+      if (!isComplete(node)) await handleComplete(node)
     } else if (currentX > THRESHOLD) {
       // Swipe right → start
-      await handleStart(node)
+      if (!isComplete(node)) await handleStart(node)
     }
   })
 }
