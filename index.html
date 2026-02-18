@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Timeflowy">
+<title>Timeflowy</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --border: #e7e5e4;
+  --border-light: #f0efee;
+  --text: #1c1917;
+  --text-2: #57534e;
+  --text-3: #a8a29e;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --accent-2: #1d4ed8;
+  --green: #16a34a;
+  --green-light: #f0fdf4;
+  --red: #dc2626;
+  --section-bg: #f5f4f2;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ========== LAYOUT ========== */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.screen { display: none; flex-direction: column; height: 100%; }
+.screen.active { display: flex; }
+
+/* ========== HEADER ========== */
+.header {
+  padding: calc(var(--safe-top) + 16px) 20px 0;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.app-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-btn:active { transform: scale(0.93); background: var(--border); }
+
+/* ========== STATS BAR ========== */
+.stats-bar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px;
+  flex-shrink: 0;
+}
+
+.stat-card {
+  flex: 1;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 2px;
+}
+
+.stat-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* ========== ROUTINE BTN ========== */
+.routine-bar {
+  padding: 0 20px 10px;
+  flex-shrink: 0;
+}
+
+.routine-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.routine-btn:active { background: var(--border-light); }
+
+/* ========== TASK LIST ========== */
+.task-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px calc(var(--safe-bottom) + 20px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.task-list { display: flex; flex-direction: column; gap: 4px; }
+
+/* ========== TASK ITEM ========== */
+.task-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.task-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  min-height: 48px;
+}
+
+.task-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.task-item.started .task-check {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.task-body { flex: 1; min-width: 0; }
+
+.task-name {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.task-name a { color: var(--accent); text-decoration: none; }
+.task-name a:hover { text-decoration: underline; }
+
+.task-item.started .task-name { color: var(--accent); }
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.task-estimate {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.task-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.started-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-light);
+  border-radius: 20px;
+  padding: 1px 7px;
+}
+
+/* expand toggle */
+.task-expand {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: -1px;
+  transition: color 0.15s, transform 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.task-expand.open { transform: rotate(90deg); color: var(--text-2); }
+
+/* action buttons */
+.task-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 10px 44px;
+}
+.task-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.task-action-btn:active { opacity: 0.7; }
+.task-action-btn.start:active, .task-action-btn.start:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.task-action-btn.complete:active, .task-action-btn.complete:hover {
+  background: var(--green-light);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* children */
+.task-children {
+  padding: 0 14px 8px 44px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+.task-children.open { display: flex; }
+
+.child-item {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.4;
+  padding: 4px 0;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+}
+.child-item a { color: var(--accent); text-decoration: none; }
+
+/* swipe actions */
+.swipe-action {
+  position: absolute;
+  top: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.swipe-action.left { left: 0; background: var(--accent); }
+.swipe-action.right { right: 0; background: var(--green); }
+.swipe-action svg { width: 20px; height: 20px; }
+
+/* ========== SECTION DIVIDER ========== */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 6px;
+}
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.section-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ========== EMPTY STATE ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--text-3);
+}
+.empty-icon { font-size: 40px; }
+.empty-text { font-size: 15px; font-weight: 500; }
+
+/* ========== LOADING ========== */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+}
+.spinner {
+  width: 24px; height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========== SETTINGS SCREEN ========== */
+.settings-header {
+  padding: calc(var(--safe-top) + 16px) 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.settings-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px calc(var(--safe-bottom) + 20px);
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 10px;
+}
+
+.input-group {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.input-row {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+.input-row:last-child { border-bottom: none; }
+
+.input-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+
+.input-field {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 0;
+}
+.input-field::placeholder { color: var(--text-3); }
+
+.save-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.save-btn:active { background: var(--accent-2); transform: scale(0.98); }
+
+/* ========== TOAST ========== */
+.toast {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 20px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1000;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ========== MODAL ========== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: flex-end;
+  z-index: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+
+.modal-sheet {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: calc(20px) 20px calc(var(--safe-bottom) + 20px);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-overlay.show .modal-sheet { transform: translateY(0); }
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+
+.modal-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.modal-btn:active { opacity: 0.8; }
+.modal-btn.primary { background: var(--accent); color: white; }
+.modal-btn.secondary { background: var(--border-light); color: var(--text); }
+.modal-btn.cancel { background: none; color: var(--text-3); margin-bottom: 0; }
+
+/* ========== PULL TO REFRESH ========== */
+.ptr-indicator {
+  text-align: center;
+  padding: 12px;
+  color: var(--text-3);
+  font-size: 13px;
+  height: 0;
+  overflow: hidden;
+  transition: height 0.2s;
+}
+.ptr-indicator.active { height: 44px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ========== MAIN SCREEN ========== -->
+  <div class="screen active" id="screen-main">
+    <div class="header">
+      <div class="header-top">
+        <span class="app-title">Timeflowy</span>
+        <div class="header-actions">
+          <button class="icon-btn" id="btn-refresh" title="更新">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-settings" title="設定">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">残タスク</div>
+        <div class="stat-value" id="stat-remaining">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">合計見積</div>
+        <div class="stat-value" id="stat-estimate">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">終了予定</div>
+        <div class="stat-value" id="stat-endtime">—</div>
+      </div>
+    </div>
+
+    <div class="routine-bar">
+      <button class="routine-btn" id="btn-routine">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        ルーティンを生成
+      </button>
+    </div>
+
+    <div class="ptr-indicator" id="ptr">↓ 引っ張って更新</div>
+
+    <div class="task-list-wrap" id="task-list-wrap">
+      <div class="task-list" id="task-list">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SETTINGS SCREEN ========== -->
+  <div class="screen" id="screen-settings">
+    <div class="settings-header">
+      <button class="icon-btn" id="btn-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="settings-title">設定</span>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-section-title">Workflowy</div>
+        <div class="input-group">
+          <div class="input-row">
+            <div class="input-label">API Key</div>
+            <input class="input-field" id="input-apikey" type="password" placeholder="your-api-key" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="input-row">
+            <div class="input-label">タスクノード ID</div>
+            <input class="input-field" id="input-parentid" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Routine Generator</div>
+        <div class="input-group">
+          <div class="input-row">
+            <div class="input-label">テンプレートノード ID</div>
+            <input class="input-field" id="input-templateid" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <button class="save-btn" id="btn-save">保存</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Routine Modal -->
+<div class="modal-overlay" id="routine-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">ルーティンを生成</div>
+    <button class="modal-btn primary" id="routine-today">今日のルーティン</button>
+    <button class="modal-btn secondary" id="routine-tomorrow">明日のルーティン</button>
+    <button class="modal-btn cancel" id="routine-cancel">キャンセル</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========================================
+// CONFIG & STORAGE
+// ========================================
+
+const LS = {
+  get: k => localStorage.getItem(k) || '',
+  set: (k, v) => localStorage.setItem(k, v),
+}
+
+function getConfig() {
+  return {
+    apiKey: LS.get('tf_apikey'),
+    parentId: LS.get('tf_parentid'),
+    templateId: LS.get('tf_templateid'),
+  }
+}
+
+const BASE = '/api'
+
+// ========================================
+// API
+// ========================================
+
+async function apiFetch(path, opts = {}) {
+  const { apiKey } = getConfig()
+  const res = await fetch(BASE + path, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {}),
+    },
+  })
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return res.json()
+}
+
+async function fetchNodes(parentId) {
+  const data = await apiFetch(`/nodes?parent_id=${parentId}`)
+  return (data.nodes || []).sort((a, b) => a.priority - b.priority)
+}
+
+async function fetchNodeTree(parentId, depth = 0) {
+  if (depth > 5) return []
+  const nodes = await fetchNodes(parentId)
+  for (const node of nodes) {
+    node.children = await fetchNodeTree(node.id, depth + 1)
+  }
+  return nodes
+}
+
+async function apiPost(path, body) {
+  return apiFetch(path, { method: 'POST', body: JSON.stringify(body) })
+}
+
+async function apiDelete(path) {
+  const { apiKey } = getConfig()
+  const res = await fetch(BASE + path, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  })
+  return res.ok
+}
+
+// ========================================
+// UTILS
+// ========================================
+
+function getCurrentTime() {
+  const n = new Date()
+  return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`
+}
+
+function formatDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+}
+
+function calcElapsed(startTime, endTime) {
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  let d = (eh*60+em)-(sh*60+sm)
+  if (d < 0) d += 1440
+  return d
+}
+
+function extractEstimate(name) {
+  const m = name.replace(/<[^>]+>/g, '').match(/:(\d+)m/)
+  return m ? parseInt(m[1]) : 0
+}
+
+function extractStartTime(name) {
+  const m = name.replace(/<[^>]+>/g, '').match(/\b(\d{1,2}:\d{2})(?!-)/)
+  return m ? m[1] : null
+}
+
+// Strip routine/time data for display in stats (keep HTML for rendering)
+function stripMetaText(name) {
+  return name.replace(/<[^>]+>/g,'')
+    .replace(/:\d+m/g,'')
+    .replace(/\d{1,2}:\d{2}-\d{1,2}:\d{2}\s+\d+m/g,'')
+    .replace(/\d{1,2}:\d{2}/g,'')
+    .replace(/\s+/g,' ')
+    .trim()
+}
+
+// Strip meta from HTML name while preserving HTML tags and links
+function stripMetaHtml(html) {
+  // Replace meta patterns in text nodes only
+  const div = document.createElement('div')
+  div.innerHTML = html
+  function stripTextNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      node.textContent = node.textContent
+        .replace(/\s*:\d+m/g, '')
+        .replace(/\d{1,2}:\d{2}-\d{1,2}:\d{2}\s+\d+m/g, '')
+        .replace(/\d{1,2}:\d{2}/g, '')
+        .replace(/\s*\+[a-zA-Z0-9\-,()]+/g, '')
+        .replace(/\s+/g, ' ')
+    } else {
+      node.childNodes.forEach(stripTextNode)
+    }
+  }
+  stripTextNode(div)
+  return div.innerHTML.trim()
+}
+
+function isTodo(node) { return node.data?.layoutMode === 'todo' }
+function isSection(node) { return !isTodo(node) }
+function isComplete(node) { return node.completedAt !== null }
+
+// ========================================
+// TOAST
+// ========================================
+
+let toastTimer
+function showToast(msg, duration = 2200) {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.classList.add('show')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration)
+}
+
+// ========================================
+// RENDER
+// ========================================
+
+let cachedNodes = []
+
+function calcStats(nodes) {
+  const todos = nodes.filter(n => isTodo(n) && !isComplete(n))
+  const total = todos.reduce((s, n) => s + extractEstimate(n.name), 0)
+  const remaining = todos.length
+  let endTime = '—'
+  if (total > 0) {
+    const end = new Date(Date.now() + total * 60000)
+    endTime = `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`
+  }
+  return { remaining, total, endTime }
+}
+
+function updateStats(nodes) {
+  const { remaining, total, endTime } = calcStats(nodes)
+  document.getElementById('stat-remaining').textContent = remaining
+  const h = Math.floor(total/60), m = total%60
+  document.getElementById('stat-estimate').textContent = total === 0 ? '—' : h > 0 ? `${h}h${m}m` : `${m}m`
+  document.getElementById('stat-endtime').textContent = endTime
+}
+
+function renderTaskList(nodes) {
+  cachedNodes = nodes
+  updateStats(nodes)
+  const list = document.getElementById('task-list')
+  list.innerHTML = ''
+
+  const incompleteNodes = nodes.filter(n => !isComplete(n))
+
+  if (incompleteNodes.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✨</div>
+        <div class="empty-text">All done!</div>
+      </div>`
+    return
+  }
+
+  incompleteNodes.forEach(node => {
+    if (isSection(node)) {
+      list.appendChild(renderSection(node))
+    } else {
+      list.appendChild(renderTask(node))
+    }
+  })
+}
+
+function renderSection(node) {
+  const el = document.createElement('div')
+  el.className = 'section-divider'
+  const labelText = stripMetaText(node.name)
+  el.innerHTML = `
+    <div class="section-line"></div>
+    <div class="section-label">${labelText}</div>
+    <div class="section-line"></div>
+  `
+  return el
+}
+
+function renderTask(node) {
+  const wrap = document.createElement('div')
+  wrap.className = 'task-item'
+  wrap.dataset.id = node.id
+  wrap.dataset.name = node.name
+
+  const startTime = extractStartTime(node.name)
+  const estimate = extractEstimate(node.name)
+  const hasChildren = node.children && node.children.length > 0
+  if (startTime) wrap.classList.add('started')
+
+  // Build meta line
+  let metaHtml = ''
+  if (startTime) {
+    metaHtml += `<span class="started-badge">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      ${startTime}〜
+    </span>`
+  }
+  if (estimate) {
+    metaHtml += `<span class="task-estimate">:${estimate}m</span>`
+  }
+
+  // Expand button
+  const expandBtn = hasChildren
+    ? `<button class="task-expand" data-id="${node.id}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>`
+    : ''
+
+  wrap.innerHTML = `
+    <div class="swipe-action left">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="swipe-action right">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="task-inner">
+      <div class="task-check"></div>
+      <div class="task-body">
+        <div class="task-name">${stripMetaHtml(node.name)}</div>
+        ${metaHtml ? `<div class="task-meta">${metaHtml}</div>` : ''}
+      </div>
+      ${expandBtn}
+    </div>
+    ${hasChildren ? `
+    <div class="task-children" id="children-${node.id}">
+      ${node.children.map(c => `
+        <div class="child-item">${stripMetaHtml(c.name)}</div>
+      `).join('')}
+    </div>` : ''}
+  `
+
+  // Expand toggle
+  if (hasChildren) {
+    const btn = wrap.querySelector('.task-expand')
+    btn.addEventListener('click', e => {
+      e.stopPropagation()
+      btn.classList.toggle('open')
+      document.getElementById(`children-${node.id}`).classList.toggle('open')
+    })
+  }
+
+  // Action buttons
+  wrap.querySelector('.task-action-btn.start').addEventListener('click', e => {
+    e.stopPropagation()
+    handleStart(node)
+  })
+  wrap.querySelector('.task-action-btn.complete').addEventListener('click', e => {
+    e.stopPropagation()
+    handleComplete(node)
+  })
+
+  // Swipe
+  setupSwipe(wrap, node)
+
+  return wrap
+}
+
+// ========================================
+// SWIPE
+// ========================================
+
+function setupSwipe(el, node) {
+  const inner = el.querySelector('.task-inner')
+  const leftAction = el.querySelector('.swipe-action.left')
+  const rightAction = el.querySelector('.swipe-action.right')
+
+  let startX = 0, startY = 0, currentX = 0, swiping = false, direction = null
+
+  const THRESHOLD = 80
+
+  el.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX
+    startY = e.touches[0].clientY
+    currentX = 0
+    swiping = false
+    direction = null
+    inner.style.transition = 'none'
+  }, { passive: true })
+
+  el.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX
+    const dy = e.touches[0].clientY - startY
+
+    if (!swiping && Math.abs(dy) > Math.abs(dx)) return
+
+    swiping = true
+    currentX = dx
+
+    if (direction === null) {
+      direction = dx > 0 ? 'right' : 'left'
+    }
+
+    const clamped = Math.max(-THRESHOLD * 1.3, Math.min(THRESHOLD * 1.3, currentX))
+    inner.style.transform = `translateX(${clamped}px)`
+
+    const ratio = Math.min(Math.abs(clamped) / THRESHOLD, 1)
+    if (currentX < 0) {
+      leftAction.style.opacity = '0'
+      rightAction.style.opacity = String(ratio)
+    } else {
+      rightAction.style.opacity = '0'
+      leftAction.style.opacity = String(ratio)
+    }
+  }, { passive: true })
+
+  el.addEventListener('touchend', async () => {
+    inner.style.transition = ''
+    inner.style.transform = ''
+    leftAction.style.opacity = '0'
+    rightAction.style.opacity = '0'
+
+    if (!swiping) return
+
+    if (currentX < -THRESHOLD) {
+      // Swipe left → complete
+      await handleComplete(node)
+    } else if (currentX > THRESHOLD) {
+      // Swipe right → start
+      await handleStart(node)
+    }
+  })
+}
+
+// ========================================
+// ACTIONS
+// ========================================
+
+async function handleStart(node) {
+  const startTime = extractStartTime(node.name)
+  if (startTime) {
+    showToast('すでに開始済みです')
+    return
+  }
+  try {
+    let name = node.name
+    if (!name.endsWith(' ')) name += ' '
+    name += getCurrentTime()
+    await apiPost(`/nodes/${node.id}`, { name })
+    showToast('⏱ 開始時刻を記録しました')
+    await loadTasks()
+  } catch (e) {
+    showToast('エラー: ' + e.message)
+  }
+}
+
+async function handleComplete(node) {
+  try {
+    const time = getCurrentTime()
+    let name = node.name
+    const startTime = extractStartTime(name)
+
+    if (startTime) {
+      const elapsed = calcElapsed(startTime, time)
+      name = name.replace(startTime, `${startTime}-${time} ${elapsed}m`)
+    } else {
+      if (!name.endsWith(' ')) name += ' '
+      name += time
+    }
+
+    await apiPost(`/nodes/${node.id}`, { name })
+    await apiFetch(`/nodes/${node.id}/complete`, { method: 'POST', body: '{}' })
+    showToast('✓ 完了しました')
+    await loadTasks()
+  } catch (e) {
+    showToast('エラー: ' + e.message)
+  }
+}
+
+// ========================================
+// LOAD
+// ========================================
+
+async function loadTasks() {
+  const { apiKey, parentId } = getConfig()
+  if (!apiKey || !parentId) {
+    document.getElementById('task-list').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚙️</div>
+        <div class="empty-text">設定からAPIキーとノードIDを入力してください</div>
+      </div>`
+    return
+  }
+
+  try {
+    const nodes = await fetchNodeTree(parentId)
+    renderTaskList(nodes)
+  } catch (e) {
+    document.getElementById('task-list').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-text">読み込みエラー: ${e.message}</div>
+      </div>`
+  }
+}
+
+// ========================================
+// ROUTINE GENERATOR
+// ========================================
+
+const DAY_MAP = { sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6 }
+
+function extractTag(name) {
+  const text = name.replace(/<[^>]+>/g, '')
+  const m = text.match(/\+([a-zA-Z0-9\-,()]+)/)
+  return m ? m[1] : null
+}
+
+function stripTag(name) {
+  return name.replace(/\s*\+[a-zA-Z0-9\-,()]+/g, '').trim()
+}
+
+function matchesDate(tag, date) {
+  tag = tag.toLowerCase().trim()
+  if (tag === 'daily') return true
+  if (tag === 'weekday') { const d = date.getDay(); return d >= 1 && d <= 5 }
+  const wm = tag.match(/^weekly-(.+)$/)
+  if (wm) return wm[1].split(',').map(d => DAY_MAP[d.trim()]).includes(date.getDay())
+  const mm = tag.match(/^monthly-(\d+)$/)
+  if (mm) return date.getDate() === parseInt(mm[1])
+  const em = tag.match(/^every-(\d+)d\((\d{4}-\d{2}-\d{2})\)$/)
+  if (em) {
+    const interval = parseInt(em[1])
+    const base = new Date(em[2]); base.setHours(0,0,0,0)
+    const t = new Date(date); t.setHours(0,0,0,0)
+    const diff = Math.round((t-base)/86400000)
+    return diff >= 0 && diff % interval === 0
+  }
+  return false
+}
+
+async function cleanupParent(parentId) {
+  const nodes = await fetchNodes(parentId)
+  for (const node of nodes) {
+    const keep = isTodo(node) && !isComplete(node)
+    if (!keep) await apiDelete(`/nodes/${node.id}`)
+  }
+}
+
+async function createNodes(parentId, nodes) {
+  for (const node of nodes) {
+    const layoutMode = node.data?.layoutMode || 'bullets'
+    const body = {
+      parent_id: parentId,
+      name: stripTag(node.name),
+      position: 'bottom',
+      layoutMode,
+    }
+    if (node.note) body.note = node.note
+    const res = await apiPost('/nodes', body)
+    if (res.item_id && node.children?.length > 0) {
+      await createNodes(res.item_id, node.children)
+    }
+  }
+}
+
+async function generateRoutine(targetDate) {
+  const { parentId, templateId } = getConfig()
+  if (!parentId || !templateId) {
+    showToast('設定でノードIDを設定してください')
+    return
+  }
+
+  const label = formatDate(targetDate) === formatDate(new Date()) ? '今日' : '明日'
+  showToast(`${label}のルーティンを生成中...`)
+
+  try {
+    await cleanupParent(parentId)
+    const templateNodes = await fetchNodeTree(templateId)
+    const matched = templateNodes.filter(n => {
+      const tag = extractTag(n.name)
+      return tag && matchesDate(tag, targetDate)
+    })
+
+    if (matched.length === 0) {
+      showToast(`${label}に該当するルーティンがありません`)
+      return
+    }
+
+    await createNodes(parentId, matched)
+    showToast(`✅ ${label}のルーティン ${matched.length}件を生成しました`)
+    await loadTasks()
+  } catch (e) {
+    showToast('エラー: ' + e.message)
+  }
+}
+
+// ========================================
+// NAVIGATION
+// ========================================
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+  document.getElementById(id).classList.add('active')
+}
+
+// ========================================
+// PULL TO REFRESH
+// ========================================
+
+function setupPullToRefresh() {
+  const wrap = document.getElementById('task-list-wrap')
+  const ptr = document.getElementById('ptr')
+  let startY = 0, pulling = false
+
+  wrap.addEventListener('touchstart', e => {
+    if (wrap.scrollTop === 0) {
+      startY = e.touches[0].clientY
+      pulling = true
+    }
+  }, { passive: true })
+
+  wrap.addEventListener('touchmove', e => {
+    if (!pulling) return
+    const dy = e.touches[0].clientY - startY
+    if (dy > 40) ptr.classList.add('active')
+  }, { passive: true })
+
+  wrap.addEventListener('touchend', async () => {
+    if (!pulling) return
+    pulling = false
+    if (ptr.classList.contains('active')) {
+      ptr.classList.remove('active')
+      await loadTasks()
+    }
+  })
+}
+
+// ========================================
+// INIT
+// ========================================
+
+document.getElementById('btn-settings').addEventListener('click', () => {
+  const cfg = getConfig()
+  document.getElementById('input-apikey').value = cfg.apiKey
+  document.getElementById('input-parentid').value = cfg.parentId
+  document.getElementById('input-templateid').value = cfg.templateId
+  showScreen('screen-settings')
+})
+
+document.getElementById('btn-back').addEventListener('click', () => {
+  showScreen('screen-main')
+})
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  LS.set('tf_apikey', document.getElementById('input-apikey').value.trim())
+  LS.set('tf_parentid', document.getElementById('input-parentid').value.trim())
+  LS.set('tf_templateid', document.getElementById('input-templateid').value.trim())
+  showToast('設定を保存しました')
+  showScreen('screen-main')
+  loadTasks()
+})
+
+document.getElementById('btn-refresh').addEventListener('click', () => {
+  loadTasks()
+})
+
+// Routine modal
+document.getElementById('btn-routine').addEventListener('click', () => {
+  document.getElementById('routine-modal').classList.add('show')
+})
+document.getElementById('routine-cancel').addEventListener('click', () => {
+  document.getElementById('routine-modal').classList.remove('show')
+})
+document.getElementById('routine-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show')
+})
+document.getElementById('routine-today').addEventListener('click', async () => {
+  document.getElementById('routine-modal').classList.remove('show')
+  await generateRoutine(new Date())
+})
+document.getElementById('routine-tomorrow').addEventListener('click', async () => {
+  document.getElementById('routine-modal').classList.remove('show')
+  const t = new Date(); t.setDate(t.getDate() + 1)
+  await generateRoutine(t)
+})
+
+setupPullToRefresh()
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+}
+
+loadTasks()
+</script>
+</body>
+</html>
