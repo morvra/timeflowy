@@ -218,7 +218,7 @@ html, body {
 .task-body { flex: 1; min-width: 0; }
 
 .task-name {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 400;
   color: var(--text);
   line-height: 1.4;
@@ -238,7 +238,7 @@ html, body {
 
 .task-estimate {
   font-family: 'DM Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-3);
 }
 
@@ -253,7 +253,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--accent);
   background: var(--accent-light);
@@ -326,7 +326,7 @@ html, body {
 .task-children.open { display: flex; }
 
 .child-item {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-2);
   line-height: 1.4;
   padding: 4px 0;
@@ -389,7 +389,7 @@ html, body {
   padding: 10px 4px 6px;
 }
 .section-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -540,7 +540,9 @@ html, body {
 /* ========== MODAL ========== */
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  left: 0; right: 0; bottom: 0;
+  top: auto;
+  height: 100%;
   background: rgba(0,0,0,0.4);
   display: flex;
   align-items: flex-end;
@@ -548,6 +550,7 @@ html, body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
+  -webkit-backdrop-filter: none;
 }
 .modal-overlay.show { opacity: 1; pointer-events: all; }
 
@@ -1000,9 +1003,20 @@ function renderTask(node) {
   body.appendChild(nameEl)
 
   // Meta
-  if (startTime || estimate) {
+  if (timeRecord || startTime || estimate) {
     const meta = mkEl('div','task-meta')
-    if (startTime) {
+    if (timeRecord) {
+      // 完了済み時刻範囲: "HH:MM–HH:MM Xm" をグレーで
+      const rec = mkEl('span','task-estimate')
+      rec.textContent = timeRecord.start + '–' + timeRecord.end + ' ' + timeRecord.elapsed + 'm'
+      meta.appendChild(rec)
+    } else if (startTime && isComplete(node)) {
+      // 完了済みで時刻1つ: "HH:MM" のみグレーで
+      const rec = mkEl('span','task-estimate')
+      rec.textContent = startTime
+      meta.appendChild(rec)
+    } else if (startTime) {
+      // 進行中: 青バッジで "HH:MM〜"
       const badge = mkEl('span','started-badge')
       badge.appendChild(svgEl('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',9))
       badge.appendChild(document.createTextNode(' ' + startTime + '〜'))
@@ -1336,10 +1350,18 @@ document.getElementById('btn-routine').addEventListener('click', () => {
   document.getElementById('routine-modal').classList.add('show')
 })
 document.getElementById('routine-cancel').addEventListener('click', () => {
-  document.getElementById('routine-modal').classList.remove('show')
+  const modal = document.getElementById('routine-modal')
+  modal.classList.remove('show')
+  // Force repaint to restore status bar
+  document.body.style.transform = 'translateZ(0)'
+  requestAnimationFrame(() => { document.body.style.transform = '' })
 })
 document.getElementById('routine-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show')
+  if (e.target === e.currentTarget) {
+    e.currentTarget.classList.remove('show')
+    document.body.style.transform = 'translateZ(0)'
+    requestAnimationFrame(() => { document.body.style.transform = '' })
+  }
 })
 document.getElementById('routine-today').addEventListener('click', async () => {
   document.getElementById('routine-modal').classList.remove('show')

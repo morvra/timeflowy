@@ -1,4 +1,4 @@
-const CACHE = 'timeflowy-v4'
+const CACHE = 'timeflowy-v6'
 const ASSETS = ['/', '/index.html', '/manifest.json']
 
 self.addEventListener('install', e => {
