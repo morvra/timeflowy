@@ -373,9 +373,11 @@ html, body {
   text-decoration: line-through;
   color: var(--text-3);
 }
-.task-item.completed .task-name a {
-  color: var(--text-3);
-  text-decoration: line-through;
+.task-item.completed .task-name a,
+.task-item.completed .task-name a:visited,
+.task-item.completed .task-name span {
+  color: var(--text-3) !important;
+  text-decoration: line-through !important;
 }
 .task-item.completed .task-actions { display: none; }
 
@@ -814,7 +816,8 @@ function extractEstimate(name) {
 }
 
 function extractStartTime(name) {
-  const m = name.replace(/<[^>]+>/g, '').match(/\b(\d{1,2}:\d{2})(?!-)/)
+  // Match HH:MM that is NOT followed by '-' AND NOT preceded by '-'
+  const m = name.replace(/<[^>]+>/g, '').match(/(?<!-)\b(\d{1,2}:\d{2})(?!-)/)
   return m ? m[1] : null
 }
 
