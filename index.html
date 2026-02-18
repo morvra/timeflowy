@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-title" content="Timeflowy">
 <title>Timeflowy</title>
 <link rel="manifest" href="manifest.json">
-<link href='./icon-192.png' rel='icon' type='image/x-icon'/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -891,9 +890,28 @@ function renderSection(node) {
   return el
 }
 
+function mkEl(tag, cls, attrs={}) {
+  const e = document.createElement(tag)
+  if (cls) e.className = cls
+  Object.entries(attrs).forEach(([k,v]) => e.setAttribute(k,v))
+  return e
+}
+
+function svgEl(path, size=16) {
+  const s = document.createElementNS('http://www.w3.org/2000/svg','svg')
+  s.setAttribute('viewBox','0 0 24 24')
+  s.setAttribute('width',size)
+  s.setAttribute('height',size)
+  s.setAttribute('fill','none')
+  s.setAttribute('stroke','currentColor')
+  s.setAttribute('stroke-width','2.5')
+  s.setAttribute('stroke-linecap','round')
+  s.innerHTML = path
+  return s
+}
+
 function renderTask(node) {
-  const wrap = document.createElement('div')
-  wrap.className = 'task-item'
+  const wrap = mkEl('div','task-item')
   wrap.dataset.id = node.id
 
   const startTime = extractStartTime(node.name)
@@ -901,74 +919,86 @@ function renderTask(node) {
   const hasChildren = node.children && node.children.length > 0
   if (startTime) wrap.classList.add('started')
 
-  // Build meta line
-  let metaHtml = ''
-  if (startTime) {
-    metaHtml += `<span class="started-badge">
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      ${startTime}〜
-    </span>`
-  }
-  if (estimate) {
-    metaHtml += `<span class="task-estimate">:${estimate}m</span>`
+  // Swipe action overlays
+  const swipeL = mkEl('div','swipe-action left')
+  swipeL.appendChild(svgEl('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'))
+  wrap.appendChild(swipeL)
+
+  const swipeR = mkEl('div','swipe-action right')
+  swipeR.appendChild(svgEl('<polyline points="20 6 9 17 4 12"/>'))
+  wrap.appendChild(swipeR)
+
+  // Inner row
+  const inner = mkEl('div','task-inner')
+  wrap.appendChild(inner)
+
+  inner.appendChild(mkEl('div','task-check'))
+
+  const body = mkEl('div','task-body')
+  inner.appendChild(body)
+
+  const nameEl = mkEl('div','task-name')
+  nameEl.innerHTML = stripMetaHtml(node.name)  // trusted HTML from Workflowy
+  body.appendChild(nameEl)
+
+  // Meta
+  if (startTime || estimate) {
+    const meta = mkEl('div','task-meta')
+    if (startTime) {
+      const badge = mkEl('span','started-badge')
+      badge.appendChild(svgEl('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',9))
+      badge.appendChild(document.createTextNode(' ' + startTime + '〜'))
+      meta.appendChild(badge)
+    }
+    if (estimate) {
+      const est = mkEl('span','task-estimate')
+      est.textContent = ':' + estimate + 'm'
+      meta.appendChild(est)
+    }
+    body.appendChild(meta)
   }
 
   // Expand button
-  const expandBtn = hasChildren
-    ? `<button class="task-expand" data-id="${node.id}">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>`
-    : ''
-
-  wrap.innerHTML = `
-    <div class="swipe-action left">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    </div>
-    <div class="swipe-action right">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div class="task-inner">
-      <div class="task-check"></div>
-      <div class="task-body">
-        <div class="task-name">${stripMetaHtml(node.name)}</div>
-        ${metaHtml ? `<div class="task-meta">${metaHtml}</div>` : ''}
-      </div>
-      ${expandBtn}
-    </div>
-    ${hasChildren ? `
-    <div class="task-children" id="children-${node.id}">
-      ${node.children.map(c => `
-        <div class="child-item">${stripMetaHtml(c.name)}</div>
-      `).join('')}
-    </div>` : ''}
-  `
-
-  // Expand toggle
   if (hasChildren) {
-    const btn = wrap.querySelector('.task-expand')
-    if (!btn) return wrap
-    btn.addEventListener('click', e => {
+    const expandBtn = mkEl('button','task-expand')
+    expandBtn.appendChild(svgEl('<polyline points="9 18 15 12 9 6"/>',13))
+    inner.appendChild(expandBtn)
+    expandBtn.addEventListener('click', e => {
       e.stopPropagation()
-      btn.classList.toggle('open')
-      document.getElementById(`children-${node.id}`).classList.toggle('open')
+      expandBtn.classList.toggle('open')
+      childrenEl.classList.toggle('open')
     })
   }
 
   // Action buttons
-  const startBtn = wrap.querySelector('.task-action-btn.start')
-  const completeBtn = wrap.querySelector('.task-action-btn.complete')
-  if (startBtn) startBtn.addEventListener('click', e => {
-    e.stopPropagation()
-    handleStart(node)
-  })
-  if (completeBtn) completeBtn.addEventListener('click', e => {
-    e.stopPropagation()
-    handleComplete(node)
-  })
+  const actions = mkEl('div','task-actions')
+  wrap.appendChild(actions)
 
-  // Swipe
+  const startBtn = mkEl('button','task-action-btn start')
+  startBtn.appendChild(svgEl('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',12))
+  startBtn.appendChild(document.createTextNode(' 開始'))
+  startBtn.addEventListener('click', e => { e.stopPropagation(); handleStart(node) })
+  actions.appendChild(startBtn)
+
+  const completeBtn = mkEl('button','task-action-btn complete')
+  completeBtn.appendChild(svgEl('<polyline points="20 6 9 17 4 12"/>',12))
+  completeBtn.appendChild(document.createTextNode(' 完了'))
+  completeBtn.addEventListener('click', e => { e.stopPropagation(); handleComplete(node) })
+  actions.appendChild(completeBtn)
+
+  // Children
+  let childrenEl
+  if (hasChildren) {
+    childrenEl = mkEl('div','task-children',{id:'children-'+node.id})
+    node.children.forEach(c => {
+      const child = mkEl('div','child-item')
+      child.innerHTML = stripMetaHtml(c.name)
+      childrenEl.appendChild(child)
+    })
+    wrap.appendChild(childrenEl)
+  }
+
   setupSwipe(wrap, node)
-
   return wrap
 }
 
@@ -980,6 +1010,8 @@ function setupSwipe(el, node) {
   const inner = el.querySelector('.task-inner')
   const leftAction = el.querySelector('.swipe-action.left')
   const rightAction = el.querySelector('.swipe-action.right')
+
+  if (!inner || !leftAction || !rightAction) return
 
   let startX = 0, startY = 0, currentX = 0, swiping = false, direction = null
 
