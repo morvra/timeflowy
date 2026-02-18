@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Timeflowy">
 <title>Timeflowy</title>
 <link rel="manifest" href="manifest.json">
+<link href='./icon-192.png' rel='icon' type='image/x-icon'/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -737,6 +738,16 @@ async function apiDelete(path) {
 // UTILS
 // ========================================
 
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/`/g,'&#96;')
+    .replace(/'/g,'&#39;')
+}
+
 function getCurrentTime() {
   const n = new Date()
   return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`
@@ -856,10 +867,14 @@ function renderTaskList(nodes) {
   }
 
   incompleteNodes.forEach(node => {
-    if (isSection(node)) {
-      list.appendChild(renderSection(node))
-    } else {
-      list.appendChild(renderTask(node))
+    try {
+      if (isSection(node)) {
+        list.appendChild(renderSection(node))
+      } else {
+        list.appendChild(renderTask(node))
+      }
+    } catch(err) {
+      console.error('renderTask error:', err, node)
     }
   })
 }
@@ -880,7 +895,6 @@ function renderTask(node) {
   const wrap = document.createElement('div')
   wrap.className = 'task-item'
   wrap.dataset.id = node.id
-  wrap.dataset.name = node.name
 
   const startTime = extractStartTime(node.name)
   const estimate = extractEstimate(node.name)
@@ -932,6 +946,7 @@ function renderTask(node) {
   // Expand toggle
   if (hasChildren) {
     const btn = wrap.querySelector('.task-expand')
+    if (!btn) return wrap
     btn.addEventListener('click', e => {
       e.stopPropagation()
       btn.classList.toggle('open')
@@ -940,11 +955,13 @@ function renderTask(node) {
   }
 
   // Action buttons
-  wrap.querySelector('.task-action-btn.start').addEventListener('click', e => {
+  const startBtn = wrap.querySelector('.task-action-btn.start')
+  const completeBtn = wrap.querySelector('.task-action-btn.complete')
+  if (startBtn) startBtn.addEventListener('click', e => {
     e.stopPropagation()
     handleStart(node)
   })
-  wrap.querySelector('.task-action-btn.complete').addEventListener('click', e => {
+  if (completeBtn) completeBtn.addEventListener('click', e => {
     e.stopPropagation()
     handleComplete(node)
   })
@@ -1085,10 +1102,11 @@ async function loadTasks() {
     const nodes = await fetchNodeTree(parentId)
     renderTaskList(nodes)
   } catch (e) {
+    console.error('loadTasks error:', e)
     document.getElementById('task-list').innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">⚠️</div>
-        <div class="empty-text">読み込みエラー: ${e.message}</div>
+        <div class="empty-text">読み込みエラー: ${escHtml(e.message)}</div>
       </div>`
   }
 }
